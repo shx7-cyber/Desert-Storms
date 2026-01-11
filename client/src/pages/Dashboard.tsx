@@ -78,9 +78,6 @@ export default function Dashboard() {
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold text-white tracking-tight leading-none mb-4">
               Storm <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-400">Log</span>
             </h1>
-            <p className="text-muted-foreground max-w-lg text-lg">
-              Official centralized registry for tracking severe weather events across the Emirates.
-            </p>
           </div>
           <CreateStormDialog />
         </div>
