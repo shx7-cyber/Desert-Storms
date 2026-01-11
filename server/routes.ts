@@ -38,7 +38,11 @@ export async function registerRoutes(
     res.json(storms);
   });
 
-  app.post(api.storms.create.path, upload.array("media"), async (req, res) => {
+  // Handle both 'media' and 'radar' file uploads
+  app.post(api.storms.create.path, upload.fields([
+    { name: 'media', maxCount: 10 },
+    { name: 'radar', maxCount: 10 }
+  ]), async (req, res) => {
     try {
       const { password, ...body } = req.body;
 
@@ -59,18 +63,20 @@ export async function registerRoutes(
         }
       }
 
-      const mediaUrls = (req.files as Express.Multer.File[])?.map(f => `/uploads/${f.filename}`) || [];
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      const mediaUrls = files?.media?.map(f => `/uploads/${f.filename}`) || [];
+      const radarUrls = files?.radar?.map(f => `/uploads/${f.filename}`) || [];
 
       const stormData = {
         stormType: body.stormType,
         severity: body.severity,
         hailSize: body.hailSize,
-        location: body.location || "UAE",
+        location: body.location, // Now a required field from frontend
         characteristics: characteristics,
-        password: password // passed for schema check, though used for auth above
+        password: password
       };
 
-      const storm = await storage.createStorm({ ...stormData, mediaUrls });
+      const storm = await storage.createStorm({ ...stormData, mediaUrls, radarUrls });
       res.status(201).json(storm);
     } catch (err) {
       console.error(err);

@@ -9,14 +9,16 @@ export const storms = pgTable("storms", {
   hailSize: text("hail_size").notNull(),
   characteristics: text("characteristics").array(), // e.g. ["Heavy Rain", "Lightning"]
   mediaUrls: text("media_urls").array(), // URLs of uploaded files
-  location: text("location").notNull().default("UAE"),
+  radarUrls: text("radar_urls").array(), // URLs of radar screenshots
+  location: text("location").notNull(), // Specific UAE location
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertStormSchema = createInsertSchema(storms).omit({ 
   id: true, 
   createdAt: true,
-  mediaUrls: true // Handled separately via upload
+  mediaUrls: true,
+  radarUrls: true
 }).extend({
   password: z.string(), // Required for verification
   characteristics: z.array(z.string()).default([]),

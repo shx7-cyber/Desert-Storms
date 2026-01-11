@@ -4,7 +4,7 @@ import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   getStorms(): Promise<Storm[]>;
-  createStorm(storm: InsertStorm & { mediaUrls: string[] }): Promise<Storm>;
+  createStorm(storm: InsertStorm & { mediaUrls: string[], radarUrls: string[] }): Promise<Storm>;
   deleteStorm(id: number): Promise<void>;
   getStorm(id: number): Promise<Storm | undefined>;
 }
@@ -14,13 +14,13 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(storms).orderBy(desc(storms.createdAt));
   }
 
-  async createStorm(storm: InsertStorm & { mediaUrls: string[] }): Promise<Storm> {
-    // Remove password from the insert object if it leaked in (though schema omits it, we want to be safe)
+  async createStorm(storm: InsertStorm & { mediaUrls: string[], radarUrls: string[] }): Promise<Storm> {
     const { password, ...stormData } = storm;
     const [newStorm] = await db.insert(storms).values({
       ...stormData,
       mediaUrls: storm.mediaUrls,
-      location: storm.location || "UAE",
+      radarUrls: storm.radarUrls,
+      location: storm.location,
     }).returning();
     return newStorm;
   }
