@@ -43,6 +43,7 @@ const formSchema = z.object({
   characteristics: z.array(z.string()).min(1, "Select at least one characteristic"),
   password: z.string().min(1, "Password is required"),
   media: z.any(), // handled manually for file input
+  radar: z.any(), // handled manually for radar file input
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -59,7 +60,8 @@ const CHARACTERISTICS = [
 
 export function CreateStormDialog() {
   const [open, setOpen] = useState(false);
-  const [files, setFiles] = useState<FileList | null>(null);
+  const [mediaFiles, setMediaFiles] = useState<FileList | null>(null);
+  const [radarFiles, setRadarFiles] = useState<FileList | null>(null);
   const { toast } = useToast();
   const createStorm = useCreateStorm();
 
@@ -69,7 +71,7 @@ export function CreateStormDialog() {
       stormType: "Single cell",
       severity: "Medium",
       hailSize: "None",
-      location: "UAE",
+      location: "",
       characteristics: [],
       password: "",
     },
@@ -88,10 +90,17 @@ export function CreateStormDialog() {
       formData.append("characteristics", char);
     });
 
-    // Append files
-    if (files) {
-      Array.from(files).forEach((file) => {
+    // Append media files
+    if (mediaFiles) {
+      Array.from(mediaFiles).forEach((file) => {
         formData.append("media", file);
+      });
+    }
+
+    // Append radar files
+    if (radarFiles) {
+      Array.from(radarFiles).forEach((file) => {
+        formData.append("radar", file);
       });
     }
 
@@ -103,7 +112,8 @@ export function CreateStormDialog() {
       });
       setOpen(false);
       form.reset();
-      setFiles(null);
+      setMediaFiles(null);
+      setRadarFiles(null);
     } catch (error) {
       toast({
         title: "Error",
@@ -121,7 +131,7 @@ export function CreateStormDialog() {
           Log New Storm
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] bg-card border-white/10 text-card-foreground">
+      <DialogContent className="sm:max-w-[600px] bg-card border-white/10 text-card-foreground overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-2xl font-display flex items-center gap-2">
             <CloudRain className="h-6 w-6 text-primary" />
@@ -261,31 +271,49 @@ export function CreateStormDialog() {
               )}
             />
 
-            <FormItem>
-              <FormLabel>Media (Photos/Videos)</FormLabel>
-              <FormControl>
-                <div className="flex items-center justify-center w-full">
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-white/5 border-white/20 transition-colors">
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-8 h-8 mb-3 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-semibold">Click to upload</span> or drag and drop
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormItem>
+                <FormLabel>Media (Photos/Videos)</FormLabel>
+                <FormControl>
+                  <div className="flex items-center justify-center w-full">
+                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-white/5 border-white/20 transition-colors text-center p-2">
+                      <Upload className="w-5 h-5 mb-1 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">
+                        {mediaFiles ? `${mediaFiles.length} files` : "Upload Media"}
                       </p>
-                      <p className="text-xs text-muted-foreground/60 mt-1">
-                        {files ? `${files.length} files selected` : "Images or Videos"}
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        multiple 
+                        accept="image/*,video/*"
+                        onChange={(e) => setMediaFiles(e.target.files)} 
+                      />
+                    </label>
+                  </div>
+                </FormControl>
+              </FormItem>
+
+              <FormItem>
+                <FormLabel>Radar Screenshots</FormLabel>
+                <FormControl>
+                  <div className="flex items-center justify-center w-full">
+                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-white/5 border-white/20 transition-colors text-center p-2">
+                      <Upload className="w-5 h-5 mb-1 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">
+                        {radarFiles ? `${radarFiles.length} files` : "Upload Radar"}
                       </p>
-                    </div>
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      multiple 
-                      accept="image/*,video/*"
-                      onChange={(e) => setFiles(e.target.files)} 
-                    />
-                  </label>
-                </div>
-              </FormControl>
-            </FormItem>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        multiple 
+                        accept="image/*"
+                        onChange={(e) => setRadarFiles(e.target.files)} 
+                      />
+                    </label>
+                  </div>
+                </FormControl>
+              </FormItem>
+            </div>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

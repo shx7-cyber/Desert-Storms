@@ -1,11 +1,32 @@
 import { useStorms } from "@/hooks/use-storms";
 import { CreateStormDialog } from "@/components/CreateStormDialog";
 import { StormCard } from "@/components/StormCard";
-import { CloudLightning, Loader2, Wind, Droplets, AlertTriangle } from "lucide-react";
+import { CloudLightning, Loader2, Wind, Droplets, AlertTriangle, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
+import { format, isToday, isYesterday, startOfDay } from "date-fns";
 
 export default function Dashboard() {
   const { data: storms, isLoading, error } = useStorms();
+
+  // Group storms by date
+  const groupedStorms = storms?.reduce((acc: Record<string, any[]>, storm) => {
+    const date = storm.createdAt ? startOfDay(new Date(storm.createdAt)).toISOString() : 'unknown';
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(storm);
+    return acc;
+  }, {});
+
+  const sortedDates = groupedStorms 
+    ? Object.keys(groupedStorms).sort((a, b) => b.localeCompare(a)) 
+    : [];
+
+  const getDateLabel = (dateStr: string) => {
+    if (dateStr === 'unknown') return 'Unknown Date';
+    const date = new Date(dateStr);
+    if (isToday(date)) return 'Today';
+    if (isYesterday(date)) return 'Yesterday';
+    return format(date, 'MMMM do, yyyy');
+  };
 
   // Calculate quick stats
   const totalStorms = storms?.length || 0;
@@ -95,10 +116,23 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Content Grid */}
-        {storms && storms.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {storms.map((storm) => (
-              <StormCard key={storm.id} storm={storm} />
+        {sortedDates.length > 0 ? (
+          <div className="space-y-12">
+            {sortedDates.map((dateStr) => (
+              <div key={dateStr} className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-xl font-bold text-white/90 font-display flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
+                    {getDateLabel(dateStr)}
+                  </h2>
+                  <div className="flex-1 h-px bg-white/5" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {groupedStorms[dateStr].map((storm: any) => (
+                    <StormCard key={storm.id} storm={storm} />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         ) : (
@@ -126,5 +160,3 @@ function StatsCard({ icon, label, value, valueClass = "text-2xl font-bold font-d
     </div>
   );
 }
-
-import { MapPin } from "lucide-react";

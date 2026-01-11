@@ -87,46 +87,79 @@ export function StormCard({ storm }: { storm: StormResponse }) {
       </div>
 
       {/* Media Gallery */}
-      {storm.mediaUrls && storm.mediaUrls.length > 0 ? (
-        <div className="bg-black/40 border-t border-white/5 p-4">
-          <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">
-            <ImageIcon className="h-3.5 w-3.5" /> Media Gallery
+      <div className="bg-black/40 border-t border-white/5 p-4 space-y-4">
+        {storm.mediaUrls && storm.mediaUrls.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">
+              <ImageIcon className="h-3.5 w-3.5" /> Media Gallery
+            </div>
+            <Carousel className="w-full">
+              <CarouselContent>
+                {storm.mediaUrls.map((url, index) => (
+                  <CarouselItem key={index} className="basis-full">
+                    <div className="aspect-video relative rounded-lg overflow-hidden bg-black/50 border border-white/10 group-hover:border-primary/20 transition-colors">
+                      {url.match(/\.(mp4|webm|mov)$/i) ? (
+                        <video 
+                          src={url} 
+                          controls 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        <img 
+                          src={url} 
+                          alt={`Storm media ${index + 1}`} 
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      )}
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              {storm.mediaUrls.length > 1 && (
+                <>
+                  <CarouselPrevious className="left-2 bg-black/50 border-white/10 hover:bg-black/70 text-white" />
+                  <CarouselNext className="right-2 bg-black/50 border-white/10 hover:bg-black/70 text-white" />
+                </>
+              )}
+            </Carousel>
           </div>
-          <Carousel className="w-full">
-            <CarouselContent>
-              {storm.mediaUrls.map((url, index) => (
-                <CarouselItem key={index} className="basis-full">
-                  <div className="aspect-video relative rounded-lg overflow-hidden bg-black/50 border border-white/10 group-hover:border-primary/20 transition-colors">
-                    {url.match(/\.(mp4|webm|mov)$/i) ? (
-                      <video 
-                        src={url} 
-                        controls 
-                        className="w-full h-full object-cover" 
-                      />
-                    ) : (
+        )}
+
+        {storm.radarUrls && storm.radarUrls.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground font-medium uppercase tracking-wider">
+              <Activity className="h-3.5 w-3.5" /> Radar Screenshots
+            </div>
+            <Carousel className="w-full">
+              <CarouselContent>
+                {storm.radarUrls.map((url, index) => (
+                  <CarouselItem key={index} className="basis-full">
+                    <div className="aspect-video relative rounded-lg overflow-hidden bg-black/50 border border-white/10 group-hover:border-primary/20 transition-colors">
                       <img 
                         src={url} 
-                        alt={`Storm media ${index + 1}`} 
+                        alt={`Radar screenshot ${index + 1}`} 
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
-                    )}
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            {storm.mediaUrls.length > 1 && (
-              <>
-                <CarouselPrevious className="left-2 bg-black/50 border-white/10 hover:bg-black/70 text-white" />
-                <CarouselNext className="right-2 bg-black/50 border-white/10 hover:bg-black/70 text-white" />
-              </>
-            )}
-          </Carousel>
-        </div>
-      ) : (
-        <div className="bg-background/30 p-4 border-t border-white/5 flex items-center justify-center text-muted-foreground text-sm italic h-24">
-          No media attached
-        </div>
-      )}
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              {storm.radarUrls.length > 1 && (
+                <>
+                  <CarouselPrevious className="left-2 bg-black/50 border-white/10 hover:bg-black/70 text-white" />
+                  <CarouselNext className="right-2 bg-black/50 border-white/10 hover:bg-black/70 text-white" />
+                </>
+              )}
+            </Carousel>
+          </div>
+        )}
+
+        {(!storm.mediaUrls || storm.mediaUrls.length === 0) && (!storm.radarUrls || storm.radarUrls.length === 0) && (
+          <div className="bg-background/30 p-4 flex items-center justify-center text-muted-foreground text-sm italic h-24 rounded-lg">
+            No media attached
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }
