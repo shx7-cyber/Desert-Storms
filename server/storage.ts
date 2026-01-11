@@ -1,38 +1,38 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { db } from "./db";
+import { storms, type InsertStorm, type Storm } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getStorms(): Promise<Storm[]>;
+  createStorm(storm: InsertStorm & { mediaUrls: string[] }): Promise<Storm>;
+  deleteStorm(id: number): Promise<void>;
+  getStorm(id: number): Promise<Storm | undefined>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+export class DatabaseStorage implements IStorage {
+  async getStorms(): Promise<Storm[]> {
+    return await db.select().from(storms).orderBy(desc(storms.createdAt));
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async createStorm(storm: InsertStorm & { mediaUrls: string[] }): Promise<Storm> {
+    // Remove password from the insert object if it leaked in (though schema omits it, we want to be safe)
+    const { password, ...stormData } = storm;
+    const [newStorm] = await db.insert(storms).values({
+      ...stormData,
+      mediaUrls: storm.mediaUrls,
+      location: storm.location || "UAE",
+    }).returning();
+    return newStorm;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async deleteStorm(id: number): Promise<void> {
+    await db.delete(storms).where(eq(storms.id, id));
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async getStorm(id: number): Promise<Storm | undefined> {
+    const [storm] = await db.select().from(storms).where(eq(storms.id, id));
+    return storm;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
