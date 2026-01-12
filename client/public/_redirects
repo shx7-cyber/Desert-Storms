@@ -1,0 +1,5 @@
+/*
+  Rewrites all routes to index.html for client-side routing.
+  This is required for Single Page Applications (SPAs) on Netlify.
+*/
+/*  /index.html  200
