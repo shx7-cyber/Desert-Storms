@@ -11,28 +11,55 @@ export function useStorms() {
   return useQuery({
     queryKey: [api.storms.list.path],
     queryFn: async () => {
-      // If backendUrl is provided, ensure it doesn't end with a slash if api path starts with one
-      const baseUrl = backendUrl.trim().endsWith('/') ? backendUrl.trim().slice(0, -1) : backendUrl.trim();
-      
-      // Ensure absolute URL for fetch
-      let fetchUrl = api.storms.list.path;
-      if (baseUrl) {
-        fetchUrl = `${baseUrl}${api.storms.list.path}`;
+      try {
+        const trimmedUrl = backendUrl.trim();
+        // Check if the URL is valid by trying to construct a URL object
+        // If it's not a full URL (no protocol), we treat it as an empty base
+        let baseUrl = "";
+        if (trimmedUrl) {
+          try {
+            const urlObj = new URL(trimmedUrl);
+            baseUrl = urlObj.origin;
+            if (urlObj.pathname !== "/") {
+               baseUrl += urlObj.pathname;
+            }
+            if (baseUrl.endsWith('/')) {
+              baseUrl = baseUrl.slice(0, -1);
+            }
+          } catch (e) {
+            // Not a full URL, maybe just a hostname or empty
+            baseUrl = trimmedUrl.endsWith('/') ? trimmedUrl.slice(0, -1) : trimmedUrl;
+          }
+        }
+        
+        let fetchUrl = api.storms.list.path;
+        if (baseUrl) {
+          // Ensure baseUrl starts with protocol if it looks like a domain
+          const finalBase = (baseUrl.includes('://') || baseUrl.startsWith('localhost')) 
+            ? baseUrl 
+            : `https://${baseUrl}`;
+          fetchUrl = `${finalBase}${api.storms.list.path}`;
+        }
+        
+        const res = await fetch(fetchUrl);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        
+        if (baseUrl) {
+          const finalBase = (baseUrl.includes('://') || baseUrl.startsWith('localhost')) 
+            ? baseUrl 
+            : `https://${baseUrl}`;
+          data.forEach((storm: any) => {
+            if (storm.mediaUrls) storm.mediaUrls = storm.mediaUrls.map((url: string) => url.startsWith('/') ? `${finalBase}${url}` : url);
+            if (storm.radarUrls) storm.radarUrls = storm.radarUrls.map((url: string) => url.startsWith('/') ? `${finalBase}${url}` : url);
+          });
+        }
+        
+        return api.storms.list.responses[200].parse(data);
+      } catch (e: any) {
+        console.error("Storm fetch error:", e);
+        throw e;
       }
-      
-      const res = await fetch(fetchUrl);
-      if (!res.ok) throw new Error("Failed to fetch storms");
-      const data = await res.json();
-      
-      // Map URLs to absolute if needed
-      if (baseUrl) {
-        data.forEach((storm: any) => {
-          if (storm.mediaUrls) storm.mediaUrls = storm.mediaUrls.map((url: string) => url.startsWith('/') ? `${baseUrl}${url}` : url);
-          if (storm.radarUrls) storm.radarUrls = storm.radarUrls.map((url: string) => url.startsWith('/') ? `${baseUrl}${url}` : url);
-        });
-      }
-      
-      return api.storms.list.responses[200].parse(data);
     },
   });
 }
@@ -43,15 +70,19 @@ export function useCreateStorm() {
   const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
   return useMutation({
     mutationFn: async (formData: FormData) => {
-      const baseUrl = backendUrl.trim().endsWith('/') ? backendUrl.trim().slice(0, -1) : backendUrl.trim();
+      const trimmedUrl = backendUrl.trim();
+      let baseUrl = trimmedUrl.endsWith('/') ? trimmedUrl.slice(0, -1) : trimmedUrl;
       let fetchUrl = api.storms.create.path;
       if (baseUrl) {
-        fetchUrl = `${baseUrl}${api.storms.create.path}`;
+        const finalBase = (baseUrl.includes('://') || baseUrl.startsWith('localhost')) 
+          ? baseUrl 
+          : `https://${baseUrl}`;
+        fetchUrl = `${finalBase}${api.storms.create.path}`;
       }
 
       const res = await fetch(fetchUrl, {
         method: api.storms.create.method,
-        body: formData, // Browser sets Content-Type to multipart/form-data automatically
+        body: formData, 
         credentials: "include",
       });
 
@@ -78,10 +109,14 @@ export function useDeleteStorm() {
   const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
   return useMutation({
     mutationFn: async ({ id, password }: { id: number; password: string }) => {
-      const baseUrl = backendUrl.trim().endsWith('/') ? backendUrl.trim().slice(0, -1) : backendUrl.trim();
+      const trimmedUrl = backendUrl.trim();
+      let baseUrl = trimmedUrl.endsWith('/') ? trimmedUrl.slice(0, -1) : trimmedUrl;
       let fetchUrl = api.storms.delete.path.replace(":id", String(id));
       if (baseUrl) {
-        fetchUrl = `${baseUrl}${fetchUrl}`;
+        const finalBase = (baseUrl.includes('://') || baseUrl.startsWith('localhost')) 
+          ? baseUrl 
+          : `https://${baseUrl}`;
+        fetchUrl = `${finalBase}${fetchUrl}`;
       }
 
       const res = await fetch(fetchUrl, {
