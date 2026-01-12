@@ -12,16 +12,23 @@ export function useStorms() {
     queryKey: [api.storms.list.path],
     queryFn: async () => {
       // If backendUrl is provided, ensure it doesn't end with a slash if api path starts with one
-      const baseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
-      const res = await fetch(`${baseUrl}${api.storms.list.path}`);
+      const baseUrl = backendUrl.trim().endsWith('/') ? backendUrl.trim().slice(0, -1) : backendUrl.trim();
+      
+      // Ensure absolute URL for fetch
+      let fetchUrl = api.storms.list.path;
+      if (baseUrl) {
+        fetchUrl = `${baseUrl}${api.storms.list.path}`;
+      }
+      
+      const res = await fetch(fetchUrl);
       if (!res.ok) throw new Error("Failed to fetch storms");
       const data = await res.json();
       
       // Map URLs to absolute if needed
-      if (backendUrl) {
+      if (baseUrl) {
         data.forEach((storm: any) => {
-          if (storm.mediaUrls) storm.mediaUrls = storm.mediaUrls.map((url: string) => url.startsWith('/') ? `${backendUrl}${url}` : url);
-          if (storm.radarUrls) storm.radarUrls = storm.radarUrls.map((url: string) => url.startsWith('/') ? `${backendUrl}${url}` : url);
+          if (storm.mediaUrls) storm.mediaUrls = storm.mediaUrls.map((url: string) => url.startsWith('/') ? `${baseUrl}${url}` : url);
+          if (storm.radarUrls) storm.radarUrls = storm.radarUrls.map((url: string) => url.startsWith('/') ? `${baseUrl}${url}` : url);
         });
       }
       
@@ -36,8 +43,13 @@ export function useCreateStorm() {
   const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
   return useMutation({
     mutationFn: async (formData: FormData) => {
-      const baseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
-      const res = await fetch(`${baseUrl}${api.storms.create.path}`, {
+      const baseUrl = backendUrl.trim().endsWith('/') ? backendUrl.trim().slice(0, -1) : backendUrl.trim();
+      let fetchUrl = api.storms.create.path;
+      if (baseUrl) {
+        fetchUrl = `${baseUrl}${api.storms.create.path}`;
+      }
+
+      const res = await fetch(fetchUrl, {
         method: api.storms.create.method,
         body: formData, // Browser sets Content-Type to multipart/form-data automatically
         credentials: "include",
@@ -66,8 +78,13 @@ export function useDeleteStorm() {
   const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
   return useMutation({
     mutationFn: async ({ id, password }: { id: number; password: string }) => {
-      const baseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
-      const res = await fetch(`${baseUrl}${api.storms.delete.path.replace(":id", String(id))}`, {
+      const baseUrl = backendUrl.trim().endsWith('/') ? backendUrl.trim().slice(0, -1) : backendUrl.trim();
+      let fetchUrl = api.storms.delete.path.replace(":id", String(id));
+      if (baseUrl) {
+        fetchUrl = `${baseUrl}${fetchUrl}`;
+      }
+
+      const res = await fetch(fetchUrl, {
         method: api.storms.delete.method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
