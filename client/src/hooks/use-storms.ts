@@ -11,7 +11,9 @@ export function useStorms() {
   return useQuery({
     queryKey: [api.storms.list.path],
     queryFn: async () => {
-      const res = await fetch(`${backendUrl}${api.storms.list.path}`);
+      // If backendUrl is provided, ensure it doesn't end with a slash if api path starts with one
+      const baseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
+      const res = await fetch(`${baseUrl}${api.storms.list.path}`);
       if (!res.ok) throw new Error("Failed to fetch storms");
       const data = await res.json();
       
@@ -34,7 +36,8 @@ export function useCreateStorm() {
   const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
   return useMutation({
     mutationFn: async (formData: FormData) => {
-      const res = await fetch(`${backendUrl}${api.storms.create.path}`, {
+      const baseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
+      const res = await fetch(`${baseUrl}${api.storms.create.path}`, {
         method: api.storms.create.method,
         body: formData, // Browser sets Content-Type to multipart/form-data automatically
         credentials: "include",
@@ -63,7 +66,8 @@ export function useDeleteStorm() {
   const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
   return useMutation({
     mutationFn: async ({ id, password }: { id: number; password: string }) => {
-      const res = await fetch(`${backendUrl}${api.storms.delete.path.replace(":id", String(id))}`, {
+      const baseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
+      const res = await fetch(`${baseUrl}${api.storms.delete.path.replace(":id", String(id))}`, {
         method: api.storms.delete.method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
