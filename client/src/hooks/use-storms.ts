@@ -7,12 +7,23 @@ export type StormResponse = z.infer<typeof api.storms.list.responses[200]>[numbe
 
 // Hook to fetch all storms
 export function useStorms() {
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
   return useQuery({
     queryKey: [api.storms.list.path],
     queryFn: async () => {
-      const res = await fetch(api.storms.list.path);
+      const res = await fetch(`${backendUrl}${api.storms.list.path}`);
       if (!res.ok) throw new Error("Failed to fetch storms");
-      return api.storms.list.responses[200].parse(await res.json());
+      const data = await res.json();
+      
+      // Map URLs to absolute if needed
+      if (backendUrl) {
+        data.forEach((storm: any) => {
+          if (storm.mediaUrls) storm.mediaUrls = storm.mediaUrls.map((url: string) => url.startsWith('/') ? `${backendUrl}${url}` : url);
+          if (storm.radarUrls) storm.radarUrls = storm.radarUrls.map((url: string) => url.startsWith('/') ? `${backendUrl}${url}` : url);
+        });
+      }
+      
+      return api.storms.list.responses[200].parse(data);
     },
   });
 }
@@ -20,9 +31,10 @@ export function useStorms() {
 // Hook to create a storm (Multipart Form Data)
 export function useCreateStorm() {
   const queryClient = useQueryClient();
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
   return useMutation({
     mutationFn: async (formData: FormData) => {
-      const res = await fetch(api.storms.create.path, {
+      const res = await fetch(`${backendUrl}${api.storms.create.path}`, {
         method: api.storms.create.method,
         body: formData, // Browser sets Content-Type to multipart/form-data automatically
         credentials: "include",
@@ -48,9 +60,10 @@ export function useCreateStorm() {
 // Hook to delete a storm
 export function useDeleteStorm() {
   const queryClient = useQueryClient();
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
   return useMutation({
     mutationFn: async ({ id, password }: { id: number; password: string }) => {
-      const res = await fetch(api.storms.delete.path.replace(":id", String(id)), {
+      const res = await fetch(`${backendUrl}${api.storms.delete.path.replace(":id", String(id))}`, {
         method: api.storms.delete.method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
