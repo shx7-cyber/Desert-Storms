@@ -6,8 +6,10 @@ import cors from "cors";
 
 const app = express();
 app.use(cors({
-  origin: true, // Allow all origins for now, or specify your Netlify URL
-  credentials: true
+  origin: "*", // Allow all origins to resolve CORS issues with Netlify
+  credentials: true,
+  methods: ["GET", "POST", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 const httpServer = createServer(app);
 
