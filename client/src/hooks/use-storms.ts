@@ -13,8 +13,6 @@ export function useStorms() {
     queryFn: async () => {
       try {
         const trimmedUrl = backendUrl.trim();
-        // Check if the URL is valid by trying to construct a URL object
-        // If it's not a full URL (no protocol), we treat it as an empty base
         let baseUrl = "";
         if (trimmedUrl) {
           try {
@@ -27,14 +25,12 @@ export function useStorms() {
               baseUrl = baseUrl.slice(0, -1);
             }
           } catch (e) {
-            // Not a full URL, maybe just a hostname or empty
             baseUrl = trimmedUrl.endsWith('/') ? trimmedUrl.slice(0, -1) : trimmedUrl;
           }
         }
         
         let fetchUrl = api.storms.list.path;
         if (baseUrl) {
-          // Ensure baseUrl starts with protocol if it looks like a domain
           const finalBase = (baseUrl.includes('://') || baseUrl.startsWith('localhost')) 
             ? baseUrl 
             : `https://${baseUrl}`;
@@ -58,6 +54,10 @@ export function useStorms() {
         return api.storms.list.responses[200].parse(data);
       } catch (e: any) {
         console.error("Storm fetch error:", e);
+        // Fallback for Netlify preview if backend is unreachable
+        if (window.location.hostname !== 'localhost' && !backendUrl) {
+          return [];
+        }
         throw e;
       }
     },

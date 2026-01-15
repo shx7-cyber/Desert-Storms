@@ -138,7 +138,7 @@ export function CreateStormDialog() {
             Log Storm Event
           </DialogTitle>
           <DialogDescription>
-            Record details about a recent weather event in the UAE. Password required.
+            Record details about a recent weather event in the UAE. Owner Code required.
           </DialogDescription>
         </DialogHeader>
 
@@ -331,13 +331,13 @@ export function CreateStormDialog() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Owner Password</FormLabel>
+                  <FormLabel>Owner Code</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input 
                         type="password" 
-                        placeholder="Enter password to submit" 
+                        placeholder="Enter owner code" 
                         {...field} 
                         className="pl-9 bg-background/50 border-white/10" 
                       />

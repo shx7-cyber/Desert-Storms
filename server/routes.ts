@@ -24,7 +24,8 @@ const upload = multer({
   })
 });
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "weather123";
+// Owner code for logging storms
+const ADMIN_CODE = "136115";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -46,7 +47,7 @@ export async function registerRoutes(
     try {
       const { password, ...body } = req.body;
 
-      if (password !== ADMIN_PASSWORD) {
+      if (password !== ADMIN_CODE) {
         return res.status(401).json({ message: "Invalid password" });
       }
 
@@ -87,7 +88,7 @@ export async function registerRoutes(
   app.delete(api.storms.delete.path, async (req, res) => {
     const { password } = req.body;
     
-    if (password !== ADMIN_PASSWORD) {
+    if (password !== ADMIN_CODE) {
       return res.status(401).json({ message: "Invalid password" });
     }
 
