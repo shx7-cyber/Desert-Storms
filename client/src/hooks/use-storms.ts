@@ -5,6 +5,23 @@ import { z } from "zod";
 // Types derived from the schema/api
 export type StormResponse = z.infer<typeof api.storms.list.responses[200]>[number];
 
+// Helper to get formatted base URL
+function getBaseUrl(rawUrl: string) {
+  const trimmedUrl = (rawUrl || "").trim();
+  if (!trimmedUrl) return "";
+  
+  try {
+    const urlObj = new URL(trimmedUrl.includes('://') ? trimmedUrl : `https://${trimmedUrl}`);
+    let base = urlObj.origin;
+    if (urlObj.pathname !== "/") {
+      base += urlObj.pathname;
+    }
+    return base.endsWith('/') ? base.slice(0, -1) : base;
+  } catch (e) {
+    return trimmedUrl.endsWith('/') ? trimmedUrl.slice(0, -1) : trimmedUrl;
+  }
+}
+
 // Hook to fetch all storms
 export function useStorms() {
   const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
@@ -12,52 +29,24 @@ export function useStorms() {
     queryKey: [api.storms.list.path],
     queryFn: async () => {
       try {
-        const trimmedUrl = backendUrl.trim();
-        let baseUrl = "";
-        if (trimmedUrl) {
-          try {
-            const urlObj = new URL(trimmedUrl);
-            baseUrl = urlObj.origin;
-            if (urlObj.pathname !== "/") {
-               baseUrl += urlObj.pathname;
-            }
-            if (baseUrl.endsWith('/')) {
-              baseUrl = baseUrl.slice(0, -1);
-            }
-          } catch (e) {
-            baseUrl = trimmedUrl.endsWith('/') ? trimmedUrl.slice(0, -1) : trimmedUrl;
-          }
-        }
-        
-        let fetchUrl = api.storms.list.path;
-        if (baseUrl) {
-          const finalBase = (baseUrl.includes('://') || baseUrl.startsWith('localhost')) 
-            ? baseUrl 
-            : `https://${baseUrl}`;
-          fetchUrl = `${finalBase}${api.storms.list.path}`;
-        }
+        const baseUrl = getBaseUrl(backendUrl);
+        const fetchUrl = baseUrl ? `${baseUrl}${api.storms.list.path}` : api.storms.list.path;
         
         const res = await fetch(fetchUrl);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
         
         if (baseUrl) {
-          const finalBase = (baseUrl.includes('://') || baseUrl.startsWith('localhost')) 
-            ? baseUrl 
-            : `https://${baseUrl}`;
           data.forEach((storm: any) => {
-            if (storm.mediaUrls) storm.mediaUrls = storm.mediaUrls.map((url: string) => url.startsWith('/') ? `${finalBase}${url}` : url);
-            if (storm.radarUrls) storm.radarUrls = storm.radarUrls.map((url: string) => url.startsWith('/') ? `${finalBase}${url}` : url);
+            if (storm.mediaUrls) storm.mediaUrls = storm.mediaUrls.map((url: string) => url.startsWith('/') ? `${baseUrl}${url}` : url);
+            if (storm.radarUrls) storm.radarUrls = storm.radarUrls.map((url: string) => url.startsWith('/') ? `${baseUrl}${url}` : url);
           });
         }
         
         return api.storms.list.responses[200].parse(data);
       } catch (e: any) {
         console.error("Storm fetch error:", e);
-        // Fallback for Netlify preview if backend is unreachable
-        if (window.location.hostname !== 'localhost' && !backendUrl) {
-          return [];
-        }
+        if (window.location.hostname !== 'localhost' && !backendUrl) return [];
         throw e;
       }
     },
@@ -70,29 +59,26 @@ export function useCreateStorm() {
   const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
   return useMutation({
     mutationFn: async (formData: FormData) => {
-      const trimmedUrl = backendUrl.trim();
-      let baseUrl = trimmedUrl.endsWith('/') ? trimmedUrl.slice(0, -1) : trimmedUrl;
-      let fetchUrl = api.storms.create.path;
-      if (baseUrl) {
-        const finalBase = (baseUrl.includes('://') || baseUrl.startsWith('localhost')) 
-          ? baseUrl 
-          : `https://${baseUrl}`;
-        fetchUrl = `${finalBase}${api.storms.create.path}`;
-      }
+      const baseUrl = getBaseUrl(backendUrl);
+      const fetchUrl = baseUrl ? `${baseUrl}${api.storms.create.path}` : api.storms.create.path;
+
+      console.log("Submitting to:", fetchUrl);
 
       const res = await fetch(fetchUrl, {
         method: api.storms.create.method,
-        body: formData, 
-        credentials: "include",
+        body: formData,
       });
 
       if (!res.ok) {
-        if (res.status === 401) throw new Error("Invalid password");
-        if (res.status === 400) {
-          const error = await res.json();
+        const errorText = await res.text();
+        console.error("Submission failed:", res.status, errorText);
+        if (res.status === 401) throw new Error("Invalid owner code");
+        try {
+          const error = JSON.parse(errorText);
           throw new Error(error.message || "Validation failed");
+        } catch (e) {
+          throw new Error("Failed to log storm");
         }
-        throw new Error("Failed to create storm log");
       }
 
       return api.storms.create.responses[201].parse(await res.json());
@@ -109,25 +95,18 @@ export function useDeleteStorm() {
   const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
   return useMutation({
     mutationFn: async ({ id, password }: { id: number; password: string }) => {
-      const trimmedUrl = backendUrl.trim();
-      let baseUrl = trimmedUrl.endsWith('/') ? trimmedUrl.slice(0, -1) : trimmedUrl;
-      let fetchUrl = api.storms.delete.path.replace(":id", String(id));
-      if (baseUrl) {
-        const finalBase = (baseUrl.includes('://') || baseUrl.startsWith('localhost')) 
-          ? baseUrl 
-          : `https://${baseUrl}`;
-        fetchUrl = `${finalBase}${fetchUrl}`;
-      }
+      const baseUrl = getBaseUrl(backendUrl);
+      const path = api.storms.delete.path.replace(":id", String(id));
+      const fetchUrl = baseUrl ? `${baseUrl}${path}` : path;
 
       const res = await fetch(fetchUrl, {
         method: api.storms.delete.method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
-        credentials: "include",
       });
 
       if (!res.ok) {
-        if (res.status === 401) throw new Error("Invalid password");
+        if (res.status === 401) throw new Error("Invalid owner code");
         if (res.status === 404) throw new Error("Storm not found");
         throw new Error("Failed to delete storm log");
       }
